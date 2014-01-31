@@ -28,6 +28,17 @@ var defaultOpts = &baseOpts {
 	Quiet:   false,
 }
 
+type Repository struct {
+	Path string
+	Name string
+	Disabled bool
+}
+
+type User struct {
+	Name string
+	Uid int
+}
+
 func main() {
 	p := flags.NewParser(defaultOpts, flags.HelpFlag|flags.PrintErrors)
 	p.Usage = `[OPTIONS] ...
