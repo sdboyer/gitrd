@@ -17,20 +17,20 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
-type args struct {
+type baseOpts struct {
 	Verbose bool `short:"v" long:"verbose" description:"enables verbose output"`
 	Quiet   bool `short:"q" long:"quiet" description:"turns off all output"`
 	// TODO figure out how to handle/reconcile a config dir with go-flags options.
 }
 
-var defaultArgs = &args{
+var defaultOpts = &baseOpts {
 	Verbose: false,
 	Quiet:   false,
 }
 
 func main() {
-	p := flags.NewParser(defaultArgs, flags.HelpFlag|flags.PrintErrors)
+	p := flags.NewParser(defaultOpts, flags.HelpFlag|flags.PrintErrors)
 	p.Usage = `[OPTIONS] ...
 
-	gitrd is an all-in-one git daemon.`
+	gitrd is an all-in-one git daemon: ssh, http, etc.`
 }
