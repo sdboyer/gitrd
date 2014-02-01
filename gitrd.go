@@ -14,7 +14,7 @@ infrastructure works.
 package gitrd
 
 import (
-	"github.com/jessevdk/go-flags"
+//"github.com/jessevdk/go-flags"
 )
 
 type baseOpts struct {
@@ -23,14 +23,14 @@ type baseOpts struct {
 	// TODO figure out how to handle/reconcile a config dir with go-flags options.
 }
 
-var defaultOpts = &baseOpts {
+var defaultOpts = &baseOpts{
 	Verbose: false,
 	Quiet:   false,
 }
 
 type Repository struct {
-	Path string
-	Name string
+	Path     string
+	Name     string
 	Disabled bool
 }
 
@@ -55,11 +55,11 @@ func (r *Repository) UploadPack(filler PullerChan) {
 }
 
 type User struct {
-	Name string
-	Uid int
-	Keys [][]byte
+	Name     string
+	Uid      int
+	Keys     [][]byte
 	Password []byte
-	Auth Authorizor
+	Auth     Authorizor
 }
 
 type UserCache map[string]*User
@@ -70,8 +70,13 @@ type Authorizor interface {
 }
 
 func main() {
-	p := flags.NewParser(defaultOpts, flags.HelpFlag|flags.PrintErrors)
-	p.Usage = `[OPTIONS] ...
+	/*
+	   p := flags.NewParser(defaultOpts, flags.HelpFlag|flags.PrintErrors)
+	   	p.Usage = `[OPTIONS] ...
 
-	gitrd is an all-in-one git daemon: ssh, http, etc.`
+	   	gitrd is an all-in-one git daemon: ssh, http, etc.`
+	*/
+	hostkey_path := "hostkey"
+	rest_base_address := "localhost:12345"
+	vcs_root := "repos"
 }
