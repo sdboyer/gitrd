@@ -34,9 +34,37 @@ type Repository struct {
 	Disabled bool
 }
 
+type PusherChan struct {
+	channel chan []byte
+}
+
+type PullerChan struct {
+	channel chan []byte
+}
+
+// This would be the thing we call once we determine that a push is
+// desired by the client. Should be able to be called from httpd or
+// sshd context, if possible.
+func (r *Repository) ReceivePack(filler PusherChan) {
+}
+
+// This would be the thing we call once we determine that a pull is
+// desired by the client. Should be able to be called from httpd or
+// sshd context, if possible.
+func (r *Repository) UploadPack(filler PullerChan) {
+}
+
 type User struct {
 	Name string
 	Uid int
+	Keys [][]byte
+	Password []byte
+	Auth Authorizor
+}
+
+type Authorizor interface {
+	CanRead(r Repository)
+	CanPush(r Repository)
 }
 
 func main() {
