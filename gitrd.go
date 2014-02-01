@@ -62,9 +62,11 @@ type User struct {
 	Auth Authorizor
 }
 
+type UserCache map[string]*User
+
 type Authorizor interface {
-	CanRead(r Repository)
-	CanPush(r Repository)
+	CanRead(User, Repository) (bool, string)
+	CanWrite(User, Repository) (bool, string)
 }
 
 func main() {
