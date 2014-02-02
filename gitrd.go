@@ -11,7 +11,7 @@ and other configurable components to be managed through a single stack,
 eliminating the need to teach multiple different daemons about how your git
 infrastructure works.
 */
-package gitrd
+package main
 
 import (
 //"github.com/jessevdk/go-flags"
