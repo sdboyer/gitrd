@@ -14,7 +14,8 @@ infrastructure works.
 package main
 
 import (
-//"github.com/jessevdk/go-flags"
+	//"github.com/jessevdk/go-flags"
+	"github.com/sdboyer/gitrd/sshd"
 )
 
 type baseOpts struct {
@@ -76,7 +77,12 @@ func main() {
 
 	   	gitrd is an all-in-one git daemon: ssh, http, etc.`
 	*/
-	hostkey_path := "hostkey"
-	rest_base_address := "localhost:12345"
-	vcs_root := "repos"
+	ssh_config := &sshd.Config{
+		HostkeyPath:     "hostkey",
+		BindAddr: "0.0.0.0:2022",
+		BaseRestAddress: "localhost:12345",
+		VcsRoot:         "repos",
+	}
+
+	sshd.Start(ssh_config)
 }
