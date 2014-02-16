@@ -3,10 +3,10 @@ package sshd
 import (
 	"code.google.com/p/go.crypto/ssh"
 	"code.google.com/p/go.crypto/ssh/terminal"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
-	"fmt"
 )
 
 //var errLog *log.Logger
@@ -56,11 +56,14 @@ func Start(config *Config) {
 			log.Println("failed to accept incoming connection")
 			continue
 		}
-		if err := sConn.Handshake(); err != nil {
-			log.Println("failed to handshake")
-			continue
-		}
-		go handleServerConn(sConn)
+
+		go func(sConn *ssh.ServerConn) {
+			if err := sConn.Handshake(); err != nil {
+				log.Println("failed to handshake")
+			} else {
+				handleServerConn(sConn)
+			}
+		}(sConn)
 	}
 }
 

@@ -1,7 +1,6 @@
 // Defines config and general datastructures for use in gitrd.
 package cfg
 
-
 type Repository struct {
 	Path     string
 	Name     string
@@ -42,4 +41,3 @@ type Authorizor interface {
 	CanRead(User, Repository) (bool, string)
 	CanWrite(User, Repository) (bool, string)
 }
-
