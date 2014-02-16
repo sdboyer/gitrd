@@ -3,12 +3,12 @@ package sshd
 import (
 	"code.google.com/p/go.crypto/ssh"
 	"code.google.com/p/go.crypto/ssh/terminal"
+	"crypto/md5"
+	"encoding/base64"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
-	"fmt"
-    "crypto/md5"
-    "encoding/base64"
 )
 
 //var errLog *log.Logger
@@ -33,25 +33,25 @@ func Start(config *Config) {
 		PasswordCallback: func(conn *ssh.ServerConn, user, pass string) bool {
 			return user == "testuser" && pass == "tiger"
 		},
-        PublicKeyCallback: func(conn *ssh.ServerConn, user, algo string, pubkeyBytes []byte) bool {
-            // debug to see the pubkey as a string
-            // it's base64 encoded innit: https://www.ietf.org/rfc/rfc4716.txt
-            pubkeyString := base64.StdEncoding.EncodeToString(pubkeyBytes)
-            fmt.Println(pubkeyString)
+		PublicKeyCallback: func(conn *ssh.ServerConn, user, algo string, pubkeyBytes []byte) bool {
+			// debug to see the pubkey as a string
+			// it's base64 encoded innit: https://www.ietf.org/rfc/rfc4716.txt
+			pubkeyString := base64.StdEncoding.EncodeToString(pubkeyBytes)
+			fmt.Println(pubkeyString)
 
-            // extremely dumb way to get fingerprint because i suck at Go.
-            pubkeyMd5 := md5.New()
-            io.WriteString(pubkeyMd5, string(pubkeyBytes))
-            keyMd5 := pubkeyMd5.Sum(nil)
-            keyFingerprint := ""
-            for i := 0; i < len(keyMd5); i++ {
-                keyFingerprint += fmt.Sprintf("%x", keyMd5[i])
-                if ((i + 1) < len(keyMd5)) {
-                    keyFingerprint += ":"
-                }
-            }
-            fmt.Println(keyFingerprint)
-            // now use this to look up stuff on d.o.
+			// extremely dumb way to get fingerprint because i suck at Go.
+			pubkeyMd5 := md5.New()
+			io.WriteString(pubkeyMd5, string(pubkeyBytes))
+			keyMd5 := pubkeyMd5.Sum(nil)
+			keyFingerprint := ""
+			for i := 0; i < len(keyMd5); i++ {
+				keyFingerprint += fmt.Sprintf("%x", keyMd5[i])
+				if (i + 1) < len(keyMd5) {
+					keyFingerprint += ":"
+				}
+			}
+			fmt.Println(keyFingerprint)
+			// now use this to look up stuff on d.o.
 			return false
 		},
 	}
