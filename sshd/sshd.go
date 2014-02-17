@@ -37,7 +37,7 @@ func Start(config *Config) {
 			// debug to see the pubkey as a string
 			// it's base64 encoded innit: https://www.ietf.org/rfc/rfc4716.txt
 			pubkeyString := base64.StdEncoding.EncodeToString(pubkeyBytes)
-			fmt.Println(pubkeyString)
+			log.Println(pubkeyString)
 
 			pubkeyMd5 := md5.New()
 			io.WriteString(pubkeyMd5, string(pubkeyBytes))
@@ -47,7 +47,7 @@ func Start(config *Config) {
 				keyFingerprint += fmt.Sprintf("%x:", b)
 			}
 			keyFingerprint = keyFingerprint[:len(keyFingerprint)-1]
-			fmt.Println(keyFingerprint)
+			log.Println(keyFingerprint)
 			// now use this to look up stuff on d.o.
 			return false
 		},
