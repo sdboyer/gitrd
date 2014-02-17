@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"bytes"
 )
 
 //var errLog *log.Logger
@@ -40,18 +39,14 @@ func Start(config *Config) {
 			pubkeyString := base64.StdEncoding.EncodeToString(pubkeyBytes)
 			fmt.Println(pubkeyString)
 
-			// extremely dumb way to get fingerprint because i suck at Go.
 			pubkeyMd5 := md5.New()
 			io.WriteString(pubkeyMd5, string(pubkeyBytes))
-			keyMd5 := pubkeyMd5.Sum(nil)
 
 			var keyFingerprint string
-			for i := 0; i < len(keyMd5); i++ {
-				keyFingerprint += fmt.Sprintf("%x", keyMd5[i])
-				if (i + 1) < len(keyMd5) {
-					keyFingerprint += ":"
-				}
+			for _, b := range pubkeyMd5.Sum(nil) {
+				keyFingerprint += fmt.Sprintf("%x:", b)
 			}
+			keyFingerprint = keyFingerprint[:len(keyFingerprint)-1]
 			fmt.Println(keyFingerprint)
 			// now use this to look up stuff on d.o.
 			return false
