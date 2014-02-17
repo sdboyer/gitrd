@@ -30,27 +30,8 @@ func Start(config *Config) {
 	log.Println("Starting sshd")
 
 	srvcfg := &ssh.ServerConfig{
-		PasswordCallback: func(conn *ssh.ServerConn, user, pass string) bool {
-			return user == "testuser" && pass == "tiger"
-		},
-		PublicKeyCallback: func(conn *ssh.ServerConn, user, algo string, pubkeyBytes []byte) bool {
-			// debug to see the pubkey as a string
-			// it's base64 encoded innit: https://www.ietf.org/rfc/rfc4716.txt
-			pubkeyString := base64.StdEncoding.EncodeToString(pubkeyBytes)
-			log.Println(pubkeyString)
-
-			pubkeyMd5 := md5.New()
-			io.WriteString(pubkeyMd5, string(pubkeyBytes))
-
-			var keyFingerprint string
-			for _, b := range pubkeyMd5.Sum(nil) {
-				keyFingerprint += fmt.Sprintf("%x:", b)
-			}
-			keyFingerprint = keyFingerprint[:len(keyFingerprint)-1]
-			log.Println(keyFingerprint)
-			// now use this to look up stuff on d.o.
-			return false
-		},
+		PasswordCallback:  sshdPasswordCallback,
+		PublicKeyCallback: sshdPublicKeyCallback,
 	}
 
 	pemBytes, err := ioutil.ReadFile(config.HostkeyPath)
@@ -85,6 +66,29 @@ func Start(config *Config) {
 			}
 		}(sConn)
 	}
+}
+
+func sshdPublicKeyCallback(conn *ssh.ServerConn, user, algo string, pubkeyBytes []byte) bool {
+	// debug to see the pubkey as a string
+	// it's base64 encoded innit: https://www.ietf.org/rfc/rfc4716.txt
+	pubkeyString := base64.StdEncoding.EncodeToString(pubkeyBytes)
+	log.Println(pubkeyString)
+
+	pubkeyMd5 := md5.New()
+	io.WriteString(pubkeyMd5, string(pubkeyBytes))
+
+	var keyFingerprint string
+	for _, b := range pubkeyMd5.Sum(nil) {
+		keyFingerprint += fmt.Sprintf("%x:", b)
+	}
+	keyFingerprint = keyFingerprint[:len(keyFingerprint)-1]
+	log.Println(keyFingerprint)
+	// now use this to look up stuff on d.o.
+	return false
+}
+
+func sshdPasswordCallback(conn *ssh.ServerConn, user, pass string) bool {
+	return user == "testuser" && pass == "tiger"
 }
 
 func handleServerConn(sConn *ssh.ServerConn) {
