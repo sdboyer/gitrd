@@ -36,10 +36,10 @@ func Start(config *Config) {
 
 	pemBytes, err := ioutil.ReadFile(config.HostkeyPath)
 	if err != nil {
-		log.Fatal("Failed to load private key:", err)
+		log.Fatalln("Failed to load private key:", err)
 	}
 	if err = srvcfg.SetRSAPrivateKey(pemBytes); err != nil {
-		log.Fatal("Failed to parse private key:", err)
+		log.Fatalln("Failed to parse private key:", err)
 	}
 
 	// Once a ServerConfig has been configured, connections can be
