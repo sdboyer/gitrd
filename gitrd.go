@@ -41,6 +41,8 @@ func main() {
 		BindAddr:        "0.0.0.0:2022",
 		BaseRestAddress: "localhost:12345",
 		VcsRoot:         "repos",
+		UserMuxing:      true,
+		MuxUser:         "git",
 	}
 
 	sshd.Start(ssh_config)

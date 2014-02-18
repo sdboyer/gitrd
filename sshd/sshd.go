@@ -20,6 +20,8 @@ type Config struct {
 	BindAddr        string
 	BaseRestAddress string
 	VcsRoot         string
+	UserMuxing      bool
+	MuxUser         string
 }
 
 type serverConfig struct {
@@ -30,8 +32,14 @@ func Start(config *Config) {
 	log.Println("Starting sshd")
 
 	srvcfg := &ssh.ServerConfig{
-		PasswordCallback:  sshdPasswordCallback,
-		PublicKeyCallback: sshdPublicKeyCallback,
+		PasswordCallback: sshdPasswordCallback,
+		PublicKeyCallback: func(conn *ssh.ServerConn, user, algo string, pubkeyBytes []byte) bool {
+			if config.UserMuxing && config.MuxUser == user {
+				return sshdMuxedPubkeyCallback(conn, user, algo, pubkeyBytes)
+			} else {
+				return sshdPubkeyCallback(conn, user, algo, pubkeyBytes)
+			}
+		},
 	}
 
 	pemBytes, err := ioutil.ReadFile(config.HostkeyPath)
@@ -68,22 +76,25 @@ func Start(config *Config) {
 	}
 }
 
-func sshdPublicKeyCallback(conn *ssh.ServerConn, user, algo string, pubkeyBytes []byte) bool {
-	// debug to see the pubkey as a string
-	// it's base64 encoded innit: https://www.ietf.org/rfc/rfc4716.txt
-	pubkeyString := base64.StdEncoding.EncodeToString(pubkeyBytes)
-	log.Println(pubkeyString)
-
-	pubkeyMd5 := md5.New()
-	io.WriteString(pubkeyMd5, string(pubkeyBytes))
-
-	var keyFingerprint string
-	for _, b := range pubkeyMd5.Sum(nil) {
-		keyFingerprint += fmt.Sprintf("%x:", b)
+func getFingerprintFromKey(pubkeyBytes []byte, colons bool) (keyFingerprint string) {
+	h := md5.New()
+	io.WriteString(h, string(pubkeyBytes))
+	if colons {
+		for _, b := range h.Sum(nil) {
+			keyFingerprint += fmt.Sprintf("%x:", b)
+		}
+		keyFingerprint = keyFingerprint[:len(keyFingerprint)-1]
+	} else {
+		keyFingerprint = fmt.Sprintf("%x", h.Sum(nil))
 	}
-	keyFingerprint = keyFingerprint[:len(keyFingerprint)-1]
-	log.Println(keyFingerprint)
-	// now use this to look up stuff on d.o.
+	return
+}
+
+func sshdPubkeyCallback(conn *ssh.ServerConn, user, algo string, pubkeyBytes []byte) bool {
+	return false
+}
+
+func sshdMuxedPubkeyCallback(conn *ssh.ServerConn, user, algo string, pubkeyBytes []byte) bool {
 	return false
 }
 
