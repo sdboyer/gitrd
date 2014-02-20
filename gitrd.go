@@ -16,6 +16,8 @@ package main
 import (
 	//"github.com/jessevdk/go-flags"
 	"github.com/sdboyer/gitrd/sshd"
+	"io/ioutil"
+	"log"
 )
 
 type baseOpts struct {
@@ -36,14 +38,36 @@ func main() {
 
 	   	gitrd is an all-in-one git daemon: ssh, http, etc.`
 	*/
+
+	hkBytes, err := ioutil.ReadFile("hostkey")
+	if err != nil {
+		log.Fatalln("Failed to load private key:", err)
+	}
+
+	a := auther(true)
 	ssh_config := &sshd.Config{
-		HostkeyPath:     "hostkey",
-		BindAddr:        "0.0.0.0:2022",
-		BaseRestAddress: "localhost:12345",
-		VcsRoot:         "repos",
-		UserMuxing:      true,
-		MuxUser:         "git",
+		Hostkey:           hkBytes,
+		BindAddr:          "0.0.0.0:2022",
+		VcsRoot:           "repos",
+		UserMuxing:        true,
+		MuxUser:           "git",
+		KeyAuthenticator:  a,
+		PassAuthenticator: a,
 	}
 
 	sshd.Start(ssh_config)
+}
+
+type auther bool
+
+func (a auther) GetUsernameFromPubkey(pubkeyBytes []byte) (username string, err error) {
+	return "keyuser", nil
+}
+
+func (a auther) AuthenticateUserByPubkey(user, algo string, pubkeyBytes []byte) (valid bool) {
+	return bool(a)
+}
+
+func (a auther) AuthenticateUserByPassword(user, pass string) (valid bool) {
+	return bool(a)
 }

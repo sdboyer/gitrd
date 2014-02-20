@@ -4,55 +4,69 @@ import (
 	"code.google.com/p/go.crypto/ssh"
 	"code.google.com/p/go.crypto/ssh/terminal"
 	"crypto/md5"
-	"encoding/base64"
 	"fmt"
+	"github.com/sdboyer/gitrd/cfg"
 	"io"
-	"io/ioutil"
 	"log"
 )
 
-//var errLog *log.Logger
-//var authLog *log.Logger
-//var authFailLog *log.Logger
-
 type Config struct {
-	HostkeyPath     string
-	BindAddr        string
-	BaseRestAddress string
-	VcsRoot         string
-	UserMuxing      bool
-	MuxUser         string
+	// The RSA private key to use for the sshd. See ssh.ServerConfig.SetRSAPrivateKey().
+	Hostkey []byte
+
+	// The local address to which the server should bind. See net.Listen().
+	BindAddr          string
+	VcsRoot           string
+	UserMuxing        bool
+	MuxUser           string
+	KeyAuthenticator  cfg.KeyAuthenticator
+	PassAuthenticator cfg.PassAuthenticator
+	// TODO do we really need to do KeyboardInteractive challenge mode?
+	// ChallengeAuthenticator cfg.ChallengeAuthenticator
 }
 
-type serverConfig struct {
-	ssh.ServerConfig
+// Creates an ssh.ServerConfig struct that can be used to start an sshd listener.
+func (c *Config) getSshServerConfig() *ssh.ServerConfig {
+	config := &ssh.ServerConfig{}
+
+	if err := config.SetRSAPrivateKey(c.Hostkey); err != nil {
+		log.Fatalln("Failed to parse private key:", err)
+	}
+
+	// Set a password authenticator only if the config struct provides one.
+	// Have to do it this way because the ssh package infers capability from
+	// the presence or absence of the method.
+	if c.PassAuthenticator != nil {
+		config.PasswordCallback = func(conn *ssh.ServerConn, user, pass string) bool {
+			return c.PassAuthenticator.AuthenticateUserByPassword(user, pass)
+		}
+	}
+
+	// Set a pubkey authenticator only if the config struct provides one.
+	if c.KeyAuthenticator != nil {
+		config.PublicKeyCallback = func(conn *ssh.ServerConn, user, algo string, pubkeyBytes []byte) bool {
+			if c.UserMuxing && c.MuxUser == user {
+				u, err := c.KeyAuthenticator.GetUsernameFromPubkey(pubkeyBytes)
+				if err != nil {
+					return false
+				}
+
+				conn.User = u
+				return true
+			} else {
+				return c.KeyAuthenticator.AuthenticateUserByPubkey(user, algo, pubkeyBytes)
+			}
+		}
+	}
+
+	return config
 }
 
 func Start(config *Config) {
 	log.Println("Starting sshd")
 
-	srvcfg := &ssh.ServerConfig{
-		PasswordCallback: sshdPasswordCallback,
-		PublicKeyCallback: func(conn *ssh.ServerConn, user, algo string, pubkeyBytes []byte) bool {
-			if config.UserMuxing && config.MuxUser == user {
-				return sshdMuxedPubkeyCallback(conn, user, algo, pubkeyBytes)
-			} else {
-				return sshdPubkeyCallback(conn, user, algo, pubkeyBytes)
-			}
-		},
-	}
-
-	pemBytes, err := ioutil.ReadFile(config.HostkeyPath)
-	if err != nil {
-		log.Fatalln("Failed to load private key:", err)
-	}
-	if err = srvcfg.SetRSAPrivateKey(pemBytes); err != nil {
-		log.Fatalln("Failed to parse private key:", err)
-	}
-
-	// Once a ServerConfig has been configured, connections can be
-	// accepted.
-	conn, err := ssh.Listen("tcp", config.BindAddr, srvcfg)
+	// Build an ssh.ServerConfig and start listening.
+	conn, err := ssh.Listen("tcp", config.BindAddr, config.getSshServerConfig())
 	if err != nil {
 		log.Fatal("failed to listen for connection")
 	}
@@ -88,18 +102,6 @@ func getFingerprintFromKey(pubkeyBytes []byte, colons bool) (keyFingerprint stri
 		keyFingerprint = fmt.Sprintf("%x", h.Sum(nil))
 	}
 	return
-}
-
-func sshdPubkeyCallback(conn *ssh.ServerConn, user, algo string, pubkeyBytes []byte) bool {
-	return false
-}
-
-func sshdMuxedPubkeyCallback(conn *ssh.ServerConn, user, algo string, pubkeyBytes []byte) bool {
-	return false
-}
-
-func sshdPasswordCallback(conn *ssh.ServerConn, user, pass string) bool {
-	return user == "testuser" && pass == "tiger"
 }
 
 func handleServerConn(sConn *ssh.ServerConn) {

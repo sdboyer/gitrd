@@ -35,9 +35,27 @@ type User struct {
 	Auth     Authorizor
 }
 
-type UserCache map[string]*User
-
 type Authorizor interface {
 	CanRead(User, Repository) (bool, string)
 	CanWrite(User, Repository) (bool, string)
+}
+
+type KeyAuthenticator interface {
+	// Given a pubkey, determine which user it belongs to (if any). This is
+	// used only if ssh user multiplexing is enabled and the multiplexing user
+	// has been provided.
+	//
+	// If no user is found for the pubkey, an error is returned. May be called
+	// concurrently from several goroutines.
+	GetUsernameFromPubkey(pubkeyBytes []byte) (username string, err error)
+
+	// Given a pubkey and a username, indicates if the pubkey is valid for
+	// that user. May be called concurrently from several goroutines.
+	AuthenticateUserByPubkey(user, algo string, pubkeyBytes []byte) (valid bool)
+}
+
+type PassAuthenticator interface {
+	// Given a user and a plaintext password, indicates if the password is
+	// valid for that user. May be called concurrently from several goroutines.
+	AuthenticateUserByPassword(user, pass string) (valid bool)
 }
