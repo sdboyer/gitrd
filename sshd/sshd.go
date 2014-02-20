@@ -62,32 +62,38 @@ func (c *Config) getSshServerConfig() *ssh.ServerConfig {
 	return config
 }
 
-func Start(config *Config) {
+func Start(config *Config) *ssh.Listener {
 	log.Println("Starting sshd")
 
 	// Build an ssh.ServerConfig and start listening.
-	conn, err := ssh.Listen("tcp", config.BindAddr, config.getSshServerConfig())
+	srvcfg := config.getSshServerConfig()
+	conn, err := ssh.Listen("tcp", config.BindAddr, srvcfg)
 	if err != nil {
-		log.Fatal("failed to listen for connection")
+		log.Fatalf("sshd failed to listen:", err)
 	}
-	for {
-		// A ServerConn multiplexes several channels, which must
-		// themselves be Accepted.
-		log.Println("accept")
-		sConn, err := conn.Accept()
-		if err != nil {
-			log.Println("failed to accept incoming connection")
-			continue
-		}
 
-		go func(sConn *ssh.ServerConn) {
-			if err := sConn.Handshake(); err != nil {
-				log.Println("failed to handshake")
-			} else {
-				handleServerConn(sConn)
+	go func() {
+		for {
+			// A ServerConn multiplexes several channels, which must
+			// themselves be Accepted.
+			log.Println("accept")
+			sConn, err := conn.Accept()
+			if err != nil {
+				log.Println("failed to accept incoming connection")
+				continue
 			}
-		}(sConn)
-	}
+
+			go func(sConn *ssh.ServerConn) {
+				if err := sConn.Handshake(); err != nil {
+					log.Println("failed to handshake")
+				} else {
+					handleServerConn(sConn)
+				}
+			}(sConn)
+		}
+	}()
+
+	return conn
 }
 
 func getFingerprintFromKey(pubkeyBytes []byte, colons bool) (keyFingerprint string) {

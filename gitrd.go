@@ -20,6 +20,9 @@ import (
 	"log"
 )
 
+// TODO temporary approach to blocking the main process once sshd is spawned
+var blockerchan = make(chan int)
+
 type baseOpts struct {
 	Verbose bool `short:"v" long:"verbose" description:"enables verbose output"`
 	Quiet   bool `short:"q" long:"quiet" description:"turns off all output"`
@@ -56,6 +59,11 @@ func main() {
 	}
 
 	sshd.Start(ssh_config)
+
+	for {
+		// Just sit and block here, for now
+		<-blockerchan
+	}
 }
 
 type auther bool
