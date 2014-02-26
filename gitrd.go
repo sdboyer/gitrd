@@ -15,6 +15,10 @@ package main
 
 import (
 	//"github.com/jessevdk/go-flags"
+	"bytes"
+	"code.google.com/p/go.crypto/ssh"
+	"errors"
+	"github.com/sdboyer/do_git_rest/keys"
 	"github.com/sdboyer/gitrd/sshd"
 	"io/ioutil"
 	"log"
@@ -69,11 +73,35 @@ func main() {
 type auther bool
 
 func (a auther) GetUsernameFromPubkey(pubkeyBytes []byte) (username string, err error) {
-	return "keyuser", nil
+	for username, keytext := range keys.Keydata {
+		key, err := ssh.ParsePrivateKey(keytext)
+		if err != nil {
+			continue
+		}
+
+		pubkey := key.PublicKey()
+
+		if bytes.Equal(pubkeyBytes, ssh.MarshalPublicKey(pubkey)) {
+			return username, nil
+		}
+	}
+
+	return "", errors.New("No user found with the given pubkey.")
 }
 
 func (a auther) AuthenticateUserByPubkey(user, algo string, pubkeyBytes []byte) (valid bool) {
-	return bool(a)
+	keytext, exists := keys.Keydata[user]
+	if !exists {
+		return false
+	}
+
+	key, err := ssh.ParsePrivateKey(keytext)
+	if err != nil {
+		return false
+	}
+
+	pubkey := key.PublicKey()
+	return algo == pubkey.PublicKeyAlgo() && bytes.Equal(pubkeyBytes, ssh.MarshalPublicKey(pubkey))
 }
 
 func (a auther) AuthenticateUserByPassword(user, pass string) (valid bool) {
