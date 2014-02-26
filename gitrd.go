@@ -73,12 +73,7 @@ func main() {
 type auther bool
 
 func (a auther) GetUsernameFromPubkey(pubkeyBytes []byte) (username string, err error) {
-	for username, keytext := range keys.Keydata {
-		key, err := ssh.ParsePrivateKey(keytext)
-		if err != nil {
-			continue
-		}
-
+	for username, key := range keys.Keydata {
 		pubkey := key.PublicKey()
 
 		if bytes.Equal(pubkeyBytes, ssh.MarshalPublicKey(pubkey)) {
@@ -90,13 +85,8 @@ func (a auther) GetUsernameFromPubkey(pubkeyBytes []byte) (username string, err 
 }
 
 func (a auther) AuthenticateUserByPubkey(user, algo string, pubkeyBytes []byte) (valid bool) {
-	keytext, exists := keys.Keydata[user]
+	key, exists := keys.Keydata[user]
 	if !exists {
-		return false
-	}
-
-	key, err := ssh.ParsePrivateKey(keytext)
-	if err != nil {
 		return false
 	}
 
